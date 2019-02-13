@@ -233,7 +233,7 @@ func makeExecutor(req *cmds.Request, env interface{}) (cmds.Executor, error) {
 		var err error
 		api, err = getAPIAddress(req)
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to get API address")
+			return nil, err
 		}
 	}
 
@@ -263,7 +263,7 @@ func getAPIAddress(req *cmds.Request) (string, error) {
 	if len(out) == 0 {
 		apiFilePath, err := homedir.Expand(filepath.Join(filepath.Clean(getRepoDir(req)), repo.APIFile))
 		if err != nil {
-			return "", errors.Wrap(err, "failed to read api file")
+			return "", errors.Wrap(err, "can't find API endpoint address in environment, command-line, or local repo (is the daemon running?)")
 		}
 
 		out, err = repo.APIAddrFromFile(apiFilePath)
@@ -275,12 +275,12 @@ func getAPIAddress(req *cmds.Request) (string, error) {
 
 	maddr, err := ma.NewMultiaddr(out)
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "invalid API endpoint address")
 	}
 
 	_, host, err := manet.DialArgs(maddr)
 	if err != nil {
-		return "", err
+		return "", errors.Wrap(err, "invalid API endpoint address")
 	}
 
 	return host, nil
