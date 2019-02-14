@@ -39,7 +39,7 @@ type Bootstrapper struct {
 	r routing.IpfsRouting
 	// Does the work. Usually Bootstrapper.bootstrap. Argument is a slice of
 	// currently-connected peers (so it won't attempt to reconnect).
-	Bootstrap func(context.Context, []peer.ID)
+	Bootstrap func([]peer.ID)
 
 	// Bookkeeping
 	ticker         *time.Ticker
@@ -78,7 +78,7 @@ func (b *Bootstrapper) Start(ctx context.Context) {
 			case <-b.ctx.Done():
 				return
 			case <-b.ticker.C:
-				b.Bootstrap(b.ctx, b.d.Peers())
+				b.Bootstrap(b.d.Peers())
 			}
 		}
 	}()
@@ -94,13 +94,12 @@ func (b *Bootstrapper) Stop() {
 // bootstrap does the actual work. If the number of connected peers
 // has fallen below b.MinPeerThreshold it will attempt to connect to
 // a random subset of its bootstrap peers.
-func (b *Bootstrapper) bootstrap(ctx context.Context, currentPeers []peer.ID) {
+func (b *Bootstrapper) bootstrap(currentPeers []peer.ID) {
 	peersNeeded := b.MinPeerThreshold - len(currentPeers)
 	if peersNeeded < 1 {
 		return
 	}
 
-	ctx, cancel := context.WithTimeout(b.ctx, b.ConnectionTimeout)
 	var wg sync.WaitGroup
 	defer func() {
 		wg.Wait()
@@ -113,9 +112,10 @@ func (b *Bootstrapper) bootstrap(ctx context.Context, currentPeers []peer.ID) {
 				log.Warningf("got error trying to bootstrap DHT: %s. Peer discovery may suffer.", err.Error())
 			}
 		}
-		cancel()
 	}()
 
+	ctx, cancel := context.WithTimeout(b.ctx, b.ConnectionTimeout)
+	defer cancel()
 	peersAttempted := 0
 	for _, i := range rand.Perm(len(b.bootstrapPeers)) {
 		pinfo := b.bootstrapPeers[i]
