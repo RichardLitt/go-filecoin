@@ -108,7 +108,7 @@ func (b *Bootstrapper) bootstrap(ctx context.Context, currentPeers []peer.ID) {
 		// DHT Bootstrap is a persistent process so only do this once.
 		if !b.dhtBootStarted {
 			b.dhtBootStarted = true
-			err := b.r.Bootstrap(ctx)
+			err := b.r.Bootstrap(b.ctx)
 			if err != nil {
 				log.Warningf("got error trying to bootstrap DHT: %s. Peer discovery may suffer.", err.Error())
 			}
